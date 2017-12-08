@@ -19,7 +19,6 @@ WRITE_FILE_NAME = ""
 
 
 def main():
-
     # URL Listを読み込む
     ul = []
     for row in open(URL_LIST, "r", encoding="UTF-8"):
@@ -36,8 +35,11 @@ def main():
         # 言い間違い例の部分を取得
         iimatigai = getIimatugai(url)
         
+        # 言い間違いの分類を実行
+        cl = classify(ft)
+
         # CSV形式で結果を保存
-        writeFile(ft, iimatigai)
+        writeFile(ft, iimatigai, cl)
 
         # 進行状況の表示
         print(url, end='')
@@ -70,7 +72,7 @@ def getFullText(url):
         e1 = e1.replace(']', '')
         e1 = e1.replace('\t', '')
         e1 = e1.replace(' ', '')
-        # 改行文字hack(結局失敗してる)
+        # 改行コード変換(CRLF=>LF)
         e1 = e1.replace('\r\n', '\n')
 
         if e1 != '':
@@ -99,9 +101,9 @@ def getIimatugai(url):
     return l
 
 
-def writeFile(f, i):
-    writeFileStream = open(WRITE_FILE_NAME, "a", encoding="Shift-JIS")
-    #writeFileStream = open(WRITE_FILE_NAME, "a", encoding="UTF-8")
+def writeFile(f, i, c):
+    writeFileStream = open(WRITE_FILE_NAME + "_" + str(c), "a", encoding="Shift-JIS")
+    # writeFileStream = open(WRITE_FILE_NAME, "a", encoding="UTF-8")
 
     # 書き込み実行
     size = len(f)
@@ -112,6 +114,40 @@ def writeFile(f, i):
         except UnicodeEncodeError:
             print("Oh..UnicodeEncodeError")
 
+def classify(fullText):
+    ''' 言い間違いの分類 '''
+    fullText = str(fullText)
+    
+    # 使用CSVで言い間違いタイプを判別
+    css_dict = {"css/yellow2009.css": "まつがい",
+                "css/pink2009.css": "R指定",
+                "css/black2009.css": "暗黒"
+               }
+    # 検索実行
+    for k, v in css_dict.items():
+        if fullText.find(k):
+            return v
+
+    # 本文中の用語で間違いタイプを判定
+    class_list = ["書きまつがい",
+                  "元祖",
+                  "R指定",
+                  "暗黒",
+                  "まつがい電話",
+                  "固有名詞",
+                  "聞きまつがい",
+                  "珍解答",
+                  "誤メール",
+                  "子供",
+                  "かみ合わない",
+                  "まつがい"]
+
+    for cl in class_list:
+        if fullText.find(cl) != -1:
+            return cl
+
+    return "その他"
+
 
 if __name__ == "__main__":
     print("Start crawling...")
@@ -119,5 +155,5 @@ if __name__ == "__main__":
     ld = os.listdir("urllist_archive")
     for f in ld:
         URL_LIST        = "./urllist_archive/" + f
-        WRITE_FILE_NAME = "./csv/result_" + f
+        WRITE_FILE_NAME = "./csv2/result_" + f
         main()
