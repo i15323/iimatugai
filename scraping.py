@@ -36,10 +36,10 @@ def main():
         iimatigai = getIimatugai(url)
         
         # 言い間違いの分類を実行
-        cl = classify(ft)
+        cl = classify(ft, url)
 
         # CSV形式で結果を保存
-        writeFile(ft, iimatigai, cl)
+        writeFile(ft, iimatigai, cl, url)
 
         # 進行状況の表示
         print(url, end='')
@@ -101,8 +101,13 @@ def getIimatugai(url):
     return l
 
 
-def writeFile(f, i, c):
-    writeFileStream = open(WRITE_FILE_NAME + "_" + str(c), "a", encoding="Shift-JIS")
+def writeFile(f, i, c, url):
+    # 書き込みファイル名の調整
+    url = url.split("/")
+    url = url[4]
+    url = url.split(".")
+    url = url[0]
+    writeFileStream = open(WRITE_FILE_NAME + str(url) + "_" + str(c) + ".csv", "w", encoding="Shift-JIS")
     # writeFileStream = open(WRITE_FILE_NAME, "a", encoding="UTF-8")
 
     # 書き込み実行
@@ -114,25 +119,29 @@ def writeFile(f, i, c):
         except UnicodeEncodeError:
             print("Oh..UnicodeEncodeError")
 
-def classify(fullText):
+def classify(fullText, url):
     ''' 言い間違いの分類 '''
-    fullText = str(fullText)
+    # html ソース
+    with urllib.request.urlopen(url) as response:
+        html = response.read().decode('shift_jis')
+    
+    fullText = str(html)
     
     # 使用CSVで言い間違いタイプを判別
-    css_dict = {"css/yellow2009.css": "まつがい",
+    css_dict = {
+                "css/yellow2009.css": "まつがい",
                 "css/pink2009.css": "R指定",
                 "css/black2009.css": "暗黒"
                }
     # 検索実行
     for k, v in css_dict.items():
-        if fullText.find(k):
+        if fullText.find(k) != -1:
             return v
 
     # 本文中の用語で間違いタイプを判定
-    class_list = ["書きまつがい",
+    class_list = [
+                  "書きまつがい",
                   "元祖",
-                  "R指定",
-                  "暗黒",
                   "まつがい電話",
                   "固有名詞",
                   "聞きまつがい",
@@ -140,7 +149,7 @@ def classify(fullText):
                   "誤メール",
                   "子供",
                   "かみ合わない",
-                  "まつがい"]
+                 ]
 
     for cl in class_list:
         if fullText.find(cl) != -1:
@@ -152,8 +161,10 @@ def classify(fullText):
 if __name__ == "__main__":
     print("Start crawling...")
     # ディレクトリごと一括処理
-    ld = os.listdir("urllist_archive")
-    for f in ld:
-        URL_LIST        = "./urllist_archive/" + f
-        WRITE_FILE_NAME = "./csv2/result_" + f
-        main()
+#    ld = os.listdir("urllist_archive")
+#    for f in ld:
+#        URL_LIST        = "./urllist_archive/" + f
+#        WRITE_FILE_NAME = "./csv2/result_" + f
+    URL_LIST        = "urllist_archive/urllist"
+    WRITE_FILE_NAME = "csv3/urllist"
+    main()
